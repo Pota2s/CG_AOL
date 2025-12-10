@@ -76,13 +76,50 @@ async function createText(){
     scene.add(textMesh)
 }
 
-function loader(){
+async function loader(){
     init();
 
     createLighting();
 
-    createText();
+    await createTrees()
+    await createText();
     render();
+}
+
+async function createTrees(){
+    createTree(-5,-5)
+    createTree(7,-6)
+    createTree(-8,8)
+}
+
+async function createTree(x,z){
+    const textureLoader = new THREE.TextureLoader()
+    const texture = await textureLoader.loadAsync("./textures/trunk.png") 
+
+    const trunkGeometry = new THREE.CylinderGeometry(0.6,0.6,3)
+    const trunkMaterial = new THREE.MeshStandardMaterial({
+        map: texture
+    })
+
+    const trunkMesh = new THREE.Mesh(trunkGeometry,trunkMaterial)
+
+    trunkMesh.position.set(x,1.5,z)
+
+    const lowerLeafGeometry = new THREE.ConeGeometry(3,4)
+    const upperLeafGeometry = new THREE.ConeGeometry(2.1,2.8)
+
+    const leafMaterial = new THREE.MeshStandardMaterial({
+        color:0x374F2F
+    })
+
+    const lowerLeafMesh = new THREE.Mesh(lowerLeafGeometry,leafMaterial)
+    const upperLeafMesh = new THREE.Mesh(upperLeafGeometry,leafMaterial)
+
+    lowerLeafMesh.position.set(x,4,z)
+    upperLeafMesh.position.set(x,6,z)
+
+    scene.add(trunkMesh,lowerLeafMesh,upperLeafMesh)
+
 }
 
 function resizer(){
