@@ -3,6 +3,10 @@ import { TextGeometry } from "./three.js/examples/jsm/geometries/TextGeometry.js
 import { FontLoader } from "./three.js/examples/jsm/loaders/FontLoader.js"
 
 let currentCamera, thirdPersonCamera,firstPersonCamera , renderer, scene;
+let currentFace, sadFace, happyFace;
+let faceMaterial;
+
+let hamster;
 
 function init () {
     const width = window.innerWidth;
@@ -44,14 +48,99 @@ function createLighting(){
     spellEffect.position.set(0,0.5,0)
 
     scene.add(ambientLight,spotLight,directionalLight,spellEffect);
-
-    //darkWarrior.add(spellEffect)
+    try {
+        darkWarrior.add(spellEffect)
+    } catch {
+        
+    }
 
 }
 
 function render(){
     renderer.render(scene,currentCamera);
     requestAnimationFrame(render);
+}
+
+
+
+async function createHamster(){
+    const textureLoader = new THREE.TextureLoader();
+
+    const backTexture = await textureLoader.loadAsync("./textures/hamster-back.png");
+    const sideTexture = await textureLoader.loadAsync("./textures/hamster-side.png");
+
+    happyFace = await textureLoader.loadAsync("./textures/hamster-joy.png");
+    sadFace = await textureLoader.loadAsync("./textures/hamster-sad.png");
+    
+    currentFace = happyFace;
+
+    const backMaterial = new THREE.MeshPhongMaterial({
+        map: backTexture
+    });
+    const sideMaterial = new THREE.MeshPhongMaterial({
+        map: sideTexture
+    }) ;
+    const miscMaterial = new THREE.MeshPhongMaterial({
+        color: 0xFFFFFF
+    });
+    faceMaterial = new THREE.MeshPhongMaterial({
+        map: currentFace
+    });
+
+    const bodyMaterialArray = [sideMaterial,sideMaterial,backMaterial.clone(),miscMaterial,faceMaterial,backMaterial.clone()];
+
+    const bodyGeometry = new THREE.BoxGeometry(2,2,2);
+
+    const bodyMesh = new THREE.Mesh(bodyGeometry,bodyMaterialArray);
+    bodyMesh.position.set(3,1,-1);
+    bodyMesh.castShadow = true;
+    bodyMesh.receiveShadow = true;
+    bodyMesh.rotateY(Math.PI/8);
+
+    hamster = bodyMesh;
+
+    const mainMaterial = new THREE.MeshPhongMaterial({
+        color: 0x023020
+    })
+    const rightEarMaterial = new THREE.MeshPhongMaterial({
+        color: 0x6b6860
+    })
+
+
+    const tailGeometry = new THREE.BoxGeometry(0.6, 2.8, 0.6)
+    const extraTailGeometry = new THREE.BoxGeometry(0.6,0.6,1.4)
+
+    const tailMesh = new THREE.Mesh(tailGeometry,mainMaterial)
+    const extraTailMesh = new THREE.Mesh(extraTailGeometry,mainMaterial)
+
+    tailMesh.castShadow = true;
+    extraTailMesh.receiveShadow = true;
+    tailMesh.receiveShadow = true;
+    extraTailMesh.receiveShadow = true;
+
+    tailMesh.rotateY(Math.PI/8)
+    tailMesh.position.set(2.6, 1.4, -2.25)
+    extraTailMesh.rotateY(Math.PI/8)
+    extraTailMesh.rotateZ(Math.PI/2)
+    extraTailMesh.position.set(2.44, 2.8, -2.62)
+
+    const earGeometry = new THREE.ConeGeometry(0.2,0.7,128)
+
+    const leftEarMesh = new THREE.Mesh(earGeometry,mainMaterial)
+    const rightEarMesh =new THREE.Mesh(earGeometry,rightEarMaterial)
+
+    leftEarMesh.castShadow = true;
+    rightEarMesh.castShadow = true;
+    leftEarMesh.receiveShadow = true;
+    rightEarMesh.receiveShadow = true;
+
+    leftEarMesh.rotateZ(-Math.PI/8);
+    leftEarMesh.position.set(4.05, 2.2, -0.6);
+    
+    rightEarMesh.rotateZ(-Math.PI/8);
+    rightEarMesh.position.set(2.5, 2.2, 0);
+
+    scene.add(bodyMesh,tailMesh,extraTailMesh,leftEarMesh,rightEarMesh);
 }
 
 async function createText(){
@@ -81,7 +170,7 @@ async function loader(){
     init();
 
     createLighting();
-
+    await createHamster();
     await createTrees()
     await createText();
     render();
@@ -138,5 +227,36 @@ function resizer(){
 
 }
 
+function swapFace(){
+    if (currentFace == sadFace){
+        currentFace = happyFace;
+    } else {
+        currentFace = sadFace;
+    }
+
+    faceMaterial.map = currentFace;
+}
+
+function clickHandler(e){
+    const width = Math.floor(innerWidth / 2);
+    const height = Math.floor(innerHeight / 2);
+    
+    const clickLocationX = (e.clientX - width) / width;
+    const clickLocationY = (height - e.clientY) / height;
+
+    const clickLocation = new THREE.Vector2(clickLocationX,clickLocationY)
+    
+    const raycaster = new THREE.Raycaster()
+    raycaster.setFromCamera(clickLocation,currentCamera)
+
+    const intersection = raycaster.intersectObject(hamster)
+
+    if (intersection.length > 0){
+        swapFace();
+    }
+
+}
+
 addEventListener("load",loader);
 addEventListener("resize",resizer)
+addEventListener("click",clickHandler);
