@@ -4,13 +4,11 @@ import { FontLoader } from "./three.js/examples/jsm/loaders/FontLoader.js"
 import { GLTFLoader } from "./three.js/examples/jsm/loaders/GLTFLoader.js"
 import { OrbitControls} from "./three.js/examples/jsm/controls/OrbitControls.js"
 
-let currentCamera, thirdPersonCamera,firstPersonCamera , renderer, scene;
-let currentFace, sadFace, happyFace;
-let faceMaterial;
-
-let hamster;
-let darkWarrior;
-let spell = [];
+let currentCamera, thirdPersonCamera,firstPersonCamera , renderer, scene; // Global Stage components
+let currentFace, sadFace, happyFace, faceMaterial; // Hamster face components
+let hamster; // Hamster, for raycast detection
+let darkWarrior; // Dark Warrior movement component
+let spell = []; // Spell Toggling component
 
 
 function init () {
@@ -31,6 +29,8 @@ function init () {
     renderer = new THREE.WebGL1Renderer();
     renderer.setSize(width,height);
     renderer.shadowMap.enabled = true;
+    renderer.shadow.type = THREE.PCFShadowMap;
+    renderer.antialias = true;
 
     scene = new THREE.Scene();
 
@@ -39,20 +39,40 @@ function init () {
     document.body.appendChild(renderer.domElement)
 }
 
+async function createGround(){
+    const textureLoader = new THREE.TextureLoader();
+    
+    const groundMap = await textureLoader.loadAsync("./textures/ground.jpg");
+    const groundMaterial = new THREE.MeshStandardMaterial({
+    color: 0xFFFFFF,
+    map : groundMap
+    });
+    
+    const groundGeometry = new THREE.BoxGeometry(25,2,25);
+
+    const groundMesh = new THREE.Mesh(groundGeometry,groundMaterial);
+
+    groundMesh.receiveShadow = true;
+    groundMesh.position.set(0,-1,0);
+
+    scene.add(groundMesh);
+}
+
 function createLighting(){
     let ambientLight = new THREE.AmbientLight(0xFFFFFF,0.7);
 
     let spotLight = new THREE.SpotLight(0xFFFFFF,1.2,1000);
+    
     spotLight.position.set(0,10,0)
     spotLight.castShadow = true;
     spotLight.shadow.mapSize.width = 2048
     spotLight.shadow.mapSize.height = 2048
     
     let directionalLight = new THREE.DirectionalLight(0xFFFFEE,0.5)
+    
     directionalLight.position.set(5,2,8)
 
     scene.add(ambientLight,spotLight,directionalLight);
-
 }
 
 function render(){
@@ -168,19 +188,21 @@ async function createText(){
 //entry point
 async function loader(){
     init();
-
-    createLighting();
+    //Dynamic Elements
     await createWarrior();
-    createSpell();
+    await createSpell();
     await createHamster();
-    await createTrees();
-    await createText();
-    generateSkybox();
+    // Static Elements
+    createLighting();
+    createGround();
+    createTrees();
+    createText();
+    createSkybox();
+    //Render call
     render();
-
 }
 
-function createSpell(){
+async function createSpell(){
     
     const spellEffect = new THREE.PointLight(0xFFD700,2,3)
     spellEffect.position.set(0,0.5,0)
@@ -202,8 +224,8 @@ function createSpell(){
     const innerRingMesh = new THREE.Mesh(innerRingGeometry,spellMaterial);
     const outerRingMesh = new THREE.Mesh(outerRingGeometry,spellMaterial);
 
-    innerRingMesh.position.set(0, 0.5, 0)
-    outerRingMesh.position.set(0, 0.5, 0)
+    innerRingMesh.position.set(0, 0.02, 0)
+    outerRingMesh.position.set(0, 0.02, 0)
 
     innerRingMesh.rotateX(Math.PI/2)
     outerRingMesh.rotateX(Math.PI/2)
@@ -387,7 +409,7 @@ function keyHandler(e){
     }
 }
 
-const generateSkybox = () =>{
+const createSkybox = async () =>{
     const right = new THREE.TextureLoader().load("./textures/skybox_right.jpg");
     const left = new THREE.TextureLoader().load("./textures/skybox_left.jpg");
     const up = new THREE.TextureLoader().load("./textures/skybox_top.jpg");
