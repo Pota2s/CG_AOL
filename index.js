@@ -51,12 +51,7 @@ function createLighting(){
     let directionalLight = new THREE.DirectionalLight(0xFFFFEE,0.5)
     directionalLight.position.set(5,2,8)
 
-    let spellEffect = new THREE.PointLight(0xFFD700,2,3)
-    spellEffect.position.set(0,0.5,0)
-
-    scene.add(ambientLight,spotLight,directionalLight,spellEffect);
-    spell.push(spellEffect)
-    darkWarrior.add(spellEffect)
+    scene.add(ambientLight,spotLight,directionalLight);
 
 }
 
@@ -174,14 +169,65 @@ async function createText(){
 async function loader(){
     init();
 
-    await createWarrior();
     createLighting();
+    await createWarrior();
+    createSpell();
     await createHamster();
     await createTrees();
     await createText();
     generateSkybox();
     render();
 
+}
+
+function createSpell(){
+    
+    const spellEffect = new THREE.PointLight(0xFFD700,2,3)
+    spellEffect.position.set(0,0.5,0)
+    
+    const spellMaterial = new THREE.MeshPhongMaterial({
+        color: 0xdaa520,
+        emissive: 0xffcc00,
+        emissiveIntensity: 2,
+        transparent: true,
+        opacity: 0.8,
+        side: THREE.DoubleSide
+    })
+    
+    const innerRingGeometry = new THREE.RingGeometry(1  , 1.2, 64);
+    const outerRingGeometry = new THREE.RingGeometry(1.8, 2  , 64);
+    
+    const pointerGeometry = new THREE.BoxGeometry(0.05,4,0.01)
+    
+    const innerRingMesh = new THREE.Mesh(innerRingGeometry,spellMaterial);
+    const outerRingMesh = new THREE.Mesh(outerRingGeometry,spellMaterial);
+
+    innerRingMesh.position.set(0, 0.5, 0)
+    outerRingMesh.position.set(0, 0.5, 0)
+
+    innerRingMesh.rotateX(Math.PI/2)
+    outerRingMesh.rotateX(Math.PI/2)
+
+    innerRingMesh.scale.set(100,100,100)
+    outerRingMesh.scale.set(100,100,100)
+
+    const pointerMeshA = new THREE.Mesh(pointerGeometry,spellMaterial); 
+    const pointerMeshB = new THREE.Mesh(pointerGeometry,spellMaterial); 
+    
+    pointerMeshA.position.set(0, 0.01,0)
+    pointerMeshB.position.set(0, 0.01,0)
+    
+    pointerMeshA.rotateX(Math.PI/2)
+    pointerMeshA.rotateZ(Math.PI/2)
+    
+    pointerMeshB.rotateZ(Math.PI/2)
+    pointerMeshB.rotateX(Math.PI/2)
+
+    pointerMeshA.scale.set(100,100,100)
+    pointerMeshB.scale.set(100,100,100)
+
+    spell.push(spellEffect,innerRingMesh,outerRingMesh,pointerMeshA,pointerMeshB);
+    darkWarrior.add(spellEffect,innerRingMesh,outerRingMesh,pointerMeshA,pointerMeshB);
 }
 
 async function createTrees(){
