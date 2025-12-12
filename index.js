@@ -1,7 +1,8 @@
 import * as THREE from "./three.js/build/three.module.js"
 import { TextGeometry } from "./three.js/examples/jsm/geometries/TextGeometry.js"
 import { FontLoader } from "./three.js/examples/jsm/loaders/FontLoader.js"
-import {GLTFLoader} from "./three.js/examples/jsm/loaders/GLTFLoader.js"
+import { GLTFLoader } from "./three.js/examples/jsm/loaders/GLTFLoader.js"
+import { OrbitControls} from "./three.js/examples/jsm/controls/OrbitControls.js"
 
 let currentCamera, thirdPersonCamera,firstPersonCamera , renderer, scene;
 let currentFace, sadFace, happyFace;
@@ -23,7 +24,7 @@ function init () {
 
     firstPersonCamera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
     firstPersonCamera.position.set(0,1.8,0);
-    firstPersonCamera.lookAt(1.18,0);
+    firstPersonCamera.lookAt(1,1.8,0);
 
     currentCamera = thirdPersonCamera;
 
@@ -32,6 +33,8 @@ function init () {
     renderer.shadowMap.enabled = true;
 
     scene = new THREE.Scene();
+
+    new OrbitControls(thirdPersonCamera,renderer.domElement);
 
     document.body.appendChild(renderer.domElement)
 }
@@ -52,12 +55,8 @@ function createLighting(){
     spellEffect.position.set(0,0.5,0)
 
     scene.add(ambientLight,spotLight,directionalLight,spellEffect);
-    try {
-        spell.push(spellEffect)
-        darkWarrior.add(spellEffect)
-    } catch {
-        
-    }
+    spell.push(spellEffect)
+    darkWarrior.add(spellEffect)
 
 }
 
@@ -175,12 +174,14 @@ async function createText(){
 async function loader(){
     init();
 
+    await createWarrior();
     createLighting();
-    await createWarrior()
     await createHamster();
-    await createTrees()
+    await createTrees();
     await createText();
+    generateSkybox();
     render();
+
 }
 
 async function createTrees(){
@@ -226,18 +227,21 @@ async function createWarrior () {
 
     darkWarrior = gltf.scene; 
 
-    darkWarrior.position.set(0,-0.01,3) 
-    darkWarrior.scale.set(0.01, 0.01, 0.01) 
-    darkWarrior.rotation.set(0, Math.PI/2, 0) 
+    darkWarrior.position.set(0,-0.01,3) ;
+    darkWarrior.scale.set(0.01, 0.01, 0.01);
+    darkWarrior.rotation.set(0, Math.PI/2, 0); 
 
     darkWarrior.traverse(object => {
         if(object.isMesh){
-            object.castShadow = true
-            object.receiveShadow = true 
+            object.castShadow = true;
+            object.receiveShadow = true; 
         }
-    })
+    });
 
-    scene.add(darkWarrior)
+    darkWarrior.add(firstPersonCamera);
+    firstPersonCamera.position.set(0,1.8,0);
+    firstPersonCamera.lookAt(1,1.8,0);
+    scene.add(darkWarrior);
 
 }
 
@@ -254,6 +258,14 @@ function resizer(){
 
     renderer.setSize(width,height);
 
+}
+
+function swapCamera(){
+    if (currentCamera == thirdPersonCamera){
+        currentCamera = firstPersonCamera;
+    } else {
+        currentCamera = thirdPersonCamera;
+    }
 }
 
 function swapFace(){
@@ -295,7 +307,7 @@ function moveCharacter(direction,rotation){
 function toggleSpell(){
     
     spell.forEach(element => {
-        element.enabled = !(element.enabled)
+        element.visible = !(element.visible)
     });
 }
 
@@ -303,28 +315,54 @@ function keyHandler(e){
     const key = e.key
     switch(key){
         case "w":
-            moveCharacter(new THREE.Vector3(0,0,1),0)
+            moveCharacter(new THREE.Vector3(0,0,1),0);
             break;
         case "s":
-            moveCharacter(new THREE.Vector3(0,0,-1),0)
+            moveCharacter(new THREE.Vector3(0,0,-1),0);
             break;
         case "d":
-            moveCharacter(new THREE.Vector3(1,0,0),0)
+            moveCharacter(new THREE.Vector3(-1,0,0),0);
             break;
         case "a":
-            moveCharacter(new THREE.Vector3(-1,0,0),0)
+            moveCharacter(new THREE.Vector3(1,0,0),0);
             break;
         case "q":
-            moveCharacter(new THREE.Vector3(0,0,0),0.05)
+            moveCharacter(new THREE.Vector3(0,0,0),0.05);
             break;
         case "e":
-            moveCharacter(new THREE.Vector3(0,0,0),-0.05)
+            moveCharacter(new THREE.Vector3(0,0,0),-0.05);
             break;
         case " ":
-            toggleSpell()
-        default:
-            console.log(key)
+            toggleSpell();
+            break;
+        case "c":
+            swapCamera();
+            break;
     }
+}
+
+const generateSkybox = () =>{
+    const right = new THREE.TextureLoader().load("./textures/skybox_right.jpg");
+    const left = new THREE.TextureLoader().load("./textures/skybox_left.jpg");
+    const up = new THREE.TextureLoader().load("./textures/skybox_top.jpg");
+    const down = new THREE.TextureLoader().load("./textures/skybox_bottom.jpg");
+    const front = new THREE.TextureLoader().load("./textures/skybox_front.jpg");
+    const back = new THREE.TextureLoader().load("./textures/skybox_back.jpg");
+
+    const bodyTextureArray = [right,left,up,down,front,back];
+    const bodyMaterialArray = []
+
+    bodyTextureArray.forEach(element => {
+        bodyMaterialArray.push(new THREE.MeshBasicMaterial({map : element}))
+    });
+    
+    bodyMaterialArray.forEach(element => {element.side = THREE.BackSide});
+
+    const bodyGeometry = new THREE.BoxGeometry(1200,1200,1200);
+    const skyboxMesh = new THREE.Mesh(bodyGeometry,bodyMaterialArray);
+
+    scene.add(skyboxMesh);
+
 }
 
 addEventListener("load",loader);
