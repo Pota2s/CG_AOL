@@ -125,7 +125,6 @@ async function createHamster(){
         color: 0x6b6860
     })
 
-
     const tailGeometry = new THREE.BoxGeometry(0.6, 2.8, 0.6)
     const extraTailGeometry = new THREE.BoxGeometry(0.6,0.6,1.4)
 
